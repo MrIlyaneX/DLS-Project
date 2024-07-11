@@ -1,11 +1,10 @@
-from PIL.Image import Image
+from PIL import Image
 from typing import List, Any
 
-class EmbedderBase:
 
+class EmbedderBase:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def embed(images: List[Image]):
+    def embed(self, images: List[Image.Image]) -> List:
         raise NotImplemented
-    
