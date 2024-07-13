@@ -1,18 +1,18 @@
-from email.mime import image
 from typing import Any, List
 
 import torch.nn.functional as F
-
-from PIL import Image
 from Base.EmbedderBase import EmbedderBase
-from transformers import AutoModel, AutoImageProcessor
+from PIL import Image
+from transformers import AutoImageProcessor, AutoModel
+
 
 class NomicEmbedder(EmbedderBase):
     vision_model: AutoModel
     processor: AutoImageProcessor
     batch_size: int
+    device: str
 
-    def __init__(self, device: str = "mps", batch_size: int = 4, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, device: str = "cpu", batch_size: int = 4, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.processor = AutoImageProcessor.from_pretrained(
             "nomic-ai/nomic-embed-vision-v1.5"

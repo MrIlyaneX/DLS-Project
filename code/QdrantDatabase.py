@@ -32,6 +32,7 @@ class QdrantDatabase(DatabaseBase):
     def __add(
         self,
         vectors: List[np.ndarray],
+        idx: List[str | int],
         payload: List[Dict],
         collection_name: str,
         **kwargs: Any,
@@ -40,11 +41,11 @@ class QdrantDatabase(DatabaseBase):
             collection_name=collection_name,
             points=[
                 PointStruct(
-                    id=idx,  # int / str
+                    id=id,  # int / str
                     vector=vector.tolist(),
                     payload=pld,
                 )
-                for idx, vector, pld in enumerate(zip(vectors, payload))
+                for id, vector, pld in zip(idx, vectors, payload)
             ],
         )
 
