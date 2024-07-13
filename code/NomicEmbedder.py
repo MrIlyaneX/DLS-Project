@@ -1,7 +1,7 @@
 from typing import Any, List
 
 import torch.nn.functional as F
-from Base.EmbedderBase import EmbedderBase
+from .Base.EmbedderBase import EmbedderBase
 from PIL import Image
 from transformers import AutoImageProcessor, AutoModel
 
