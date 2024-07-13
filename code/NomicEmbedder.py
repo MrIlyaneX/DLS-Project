@@ -30,5 +30,5 @@ class NomicEmbedder(EmbedderBase):
             )
             img_emb_batch = self.vision_model(**image_batch).last_hidden_state
             embeddings_batch = F.normalize(img_emb_batch[:, 0], p=2, dim=1)
-            embeddings.extend(embeddings_batch.detach().tolist())
+            embeddings.extend(embeddings_batch.detach().numpy())
         return embeddings
