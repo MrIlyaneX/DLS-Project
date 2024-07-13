@@ -29,7 +29,6 @@ class NomicEmbedder(EmbedderBase):
     def embed(self, images: List[Image.Image]) -> List:
         embeddings = []
         for batch in range(0, len(images), self.batch_size):
-            print(images[batch: min(len(images), batch + self.batch_size)])
             image_batch = self.processor(
                 images[batch : min(len(images), batch + self.batch_size)], return_tensors="pt"
             )

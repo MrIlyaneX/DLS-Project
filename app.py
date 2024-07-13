@@ -37,18 +37,19 @@ def main() -> None:
     image_names = images[0].keys()
 
     embeddings = [
-        embedder.embed(
+        emb
+        for image_name in image_names
+        for emb in embedder.embed(
             [img for i in range(len(images)) for img in images[i][image_name]]
         )
-        for image_name in image_names
     ]
 
-    print(embeddings)
+    print(len(embeddings))
 
     database.add(
         vectors=embeddings,
         idx=[i for i in range(len(embeddings))],
-        payload=[{} for _ in range(len(embeddings))],
+        payload=[{"a": "0"} for _ in range(len(embeddings))],
         collection_name=collection_name,
     )
 

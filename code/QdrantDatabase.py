@@ -48,6 +48,7 @@ class QdrantDatabase(DatabaseBase):
         collection_name: str,
         **kwargs: Any,
     ) -> None:
+        
         self.client.upsert(
             collection_name=collection_name,
             points=[
@@ -56,7 +57,7 @@ class QdrantDatabase(DatabaseBase):
                     vector=vector,
                     payload=pld,
                 )
-                for i, id, vector, pld in enumerate(zip(idx, vectors, payload))
+                for i, (id, vector, pld) in enumerate(zip(idx, vectors, payload))
             ],
         )
 
