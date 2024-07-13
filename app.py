@@ -1,18 +1,20 @@
 from re import I
 from code.NomicEmbedder import NomicEmbedder
 from code.QdrantDatabase import QdrantDatabase
+from code.WindowSlidingCut import SlidingWindowCut
+from code.DetectionCut import DetectionCut
 
 collection_name: str = "image_vector_store_v1"
 emb_size: int = 768
-image_directory: str = ".dataset/"
+image_directory: str = "./dataset/train/"
 
 
 def initialize() -> tuple[NomicEmbedder, QdrantDatabase]:
     embedder = NomicEmbedder(device="cpu", batch_size=4)
     database = QdrantDatabase(host="0.0.0.0", port=6333)
 
-    slidig_window = ...
-    cropper = ...
+    sliding_window = SlidingWindowCut(size=300, step=270)
+    cropper = DetectionCut()
 
     database.create_collection(
         collection_name=collection_name,
@@ -22,28 +24,34 @@ def initialize() -> tuple[NomicEmbedder, QdrantDatabase]:
         ef_search=100,
     )
 
-    return embedder, database, [slidig_window, cropper]
+    return embedder, database, [sliding_window, cropper]
 
 
-def main():
+def main() -> None:
     embedder, database, preprocessors = initialize()
 
-    images = [preprocessor.preprocess() for preprocessor in preprocessors]
+    images = [
+        preprocessor.process_dataset(image_directory) for preprocessor in preprocessors
+    ]
 
     image_names = images[0].keys()
 
     embeddings = [
-        embedder.embed(*[images[i][image_name] for i in range(len(images))])
+        embedder.embed(
+            [img for i in range(len(images)) for img in images[i][image_name]]
+        )
         for image_name in image_names
     ]
 
+    print(embeddings)
+
     database.add(
         vectors=embeddings,
-        idx=image_names,
+        idx=[i for i in range(len(embeddings))],
         payload=[{} for _ in range(len(embeddings))],
         collection_name=collection_name,
     )
 
 
 if __name__ == "__main__":
-    pass
+    main()

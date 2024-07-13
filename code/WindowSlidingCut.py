@@ -17,9 +17,9 @@ class SlidingWindowCut(ImageProcessingBase):
         components_dict = {}
 
         def sliding_window(image, step_size, window_size):
-            for y in range(0, image.shape[0] - window_size[1] + 1, step_size):
-                for x in range(0, image.shape[1] - window_size[0] + 1, step_size):
-                    yield x, y, image[y:y + window_size[1], x:x + window_size[0]]
+            for y in range(0, image.shape[0] - window_size + 1, step_size):
+                for x in range(0, image.shape[1] - window_size + 1, step_size):
+                    yield x, y, image[y:y + window_size, x:x + window_size]
 
         def save_components(image_path, window_size, step_size):
             nonlocal global_component_counter
@@ -43,6 +43,6 @@ class SlidingWindowCut(ImageProcessingBase):
                     components = save_components(input_image_path, window_size, step_size)
                     components_dict[filename] = components
 
-        input_folder = os.path.join(path, 'images')
+        input_folder = os.path.join(path, 'data')
         process_images_folder(input_folder, self.size, self.step)
         return components_dict

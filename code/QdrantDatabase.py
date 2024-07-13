@@ -2,10 +2,10 @@ from typing import Any, Dict, List
 
 import numpy as np
 from qdrant_client.http.models.models import ScoredPoint
-from Base.BaseDatabase import DatabaseBase
+
+from .Base.BaseDatabase import DatabaseBase
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, HnswConfig, PointStruct, VectorParams
-
 
 class QdrantDatabase(DatabaseBase):
     clint: QdrantClient
@@ -17,7 +17,8 @@ class QdrantDatabase(DatabaseBase):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        self.client = QdrantClient(host=host, port=port, **kwargs)
+        self.client = QdrantClient(location=":memory:")
+        #self.client = QdrantClient(host=host, port=port, **kwargs)
 
     def create_collection(
         self,
@@ -35,6 +36,7 @@ class QdrantDatabase(DatabaseBase):
                     m=m,  # Number of bi-directional links created for every new element during construction
                     ef_construct=ef_construct,  # Size of the dynamic list for the nearest neighbors (used during the index construction)
                     ef_search=ef_search,  # Size of the dynamic list for the nearest neighbors during search
+                    full_scan_threshold=10000,
                 ),
             )
 
@@ -51,10 +53,10 @@ class QdrantDatabase(DatabaseBase):
             points=[
                 PointStruct(
                     id=id,  # int / str
-                    vector=vector.tolist(),
+                    vector=vector,
                     payload=pld,
                 )
-                for id, vector, pld in zip(idx, vectors, payload)
+                for i, id, vector, pld in enumerate(zip(idx, vectors, payload))
             ],
         )
 
