@@ -3,6 +3,7 @@ import fiftyone as fo
 import fiftyone.zoo as foz
 from PIL import Image
 from .Base.DataLoader import DataLoader
+import pandas as pd
 
 
 class OIv7Loader(DataLoader):
@@ -15,7 +16,7 @@ class OIv7Loader(DataLoader):
         self.dataset = None
         self.dataset_directory = path
 
-    def load_data(self) -> List:
+    def download_data(self) -> List:
         self.dataset = foz.load_zoo_dataset(
             "open-images-v7",
             split="train",
@@ -27,3 +28,12 @@ class OIv7Loader(DataLoader):
         )
 
         return self.dataset
+
+    def load_data(self, path: str = './dataset/train') -> List:
+        images_dir = path + '/data'
+        labels_path = path + './dataset/train/labels/detections.csv'
+
+        detections = pd.read_csv(labels_path)
+
+
+

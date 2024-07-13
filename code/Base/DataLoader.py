@@ -6,5 +6,8 @@ class DataLoader:
         self.classes = classes
         self.num_images = num_images
 
-    def load_data(self) -> List:
+    def download_data(self) -> List:
+        raise NotImplementedError
+
+    def load_data(self, path: str) -> List:
         raise NotImplementedError
