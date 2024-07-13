@@ -4,3 +4,4 @@ torchvision==0.18.1
 einops==0.8.0
 ninja==1.11.1.1
 qdrant-client==1.10.1
+fiftyone==0.24.1
