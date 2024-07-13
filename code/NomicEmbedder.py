@@ -3,7 +3,7 @@ from typing import Any, List
 import torch.nn.functional as F
 
 from PIL import Image
-from Base.EmbedderBase import EmbedderBase
+from .Base.EmbedderBase import EmbedderBase
 from transformers import AutoModel, AutoImageProcessor
 
 class NomicEmbedder(EmbedderBase):
