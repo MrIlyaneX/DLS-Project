@@ -4,8 +4,13 @@ from code.QdrantDatabase import QdrantDatabase
 from code.WindowSlidingCut import SlidingWindowCut
 from code.DetectionCut import DetectionCut
 
+from PIL import Image
+
+import pandas as pd
+
 collection_name: str = "image_vector_store_v1"
 emb_size: int = 768
+k: int = 5
 image_directory: str = "./dataset/train/"
 
 
@@ -27,7 +32,7 @@ def initialize() -> tuple[NomicEmbedder, QdrantDatabase]:
     return embedder, database, [sliding_window, cropper]
 
 
-def main() -> None:
+def process_dataset() -> None:
     embedder, database, preprocessors = initialize()
 
     images = [
@@ -49,28 +54,30 @@ def main() -> None:
             payload=[{"source": image_name} for _ in range(len(image_embeddings))],
             collection_name=collection_name,
         )
-        
 
-    # embeddings = [
-    #     database.add(
-    #         vectors=[vector for vector in emb],
-    #         idx=[i for i in range(len(emb))],
-    #         payload=[{"source": image_name} for _ in range(len(emb))],
-    #         collection_name=collection_name,
-    #     )
-    #     for image_name in tqdm(image_names)
-    #     for emb in embedder.embed(
-    #         [img for i in range(len(images)) for img in images[i][image_name]]
-    #     )
-    # ]
-    # print(len(embeddings))
-    # database.add(
-    #     vectors=[embedding[1] for embedding in embeddings],
-    #     idx=[i for i in range(len(embeddings))],
-    #     payload=[{"source": embedding[0]} for embedding in embeddings],
-    #     collection_name=collection_name,
-    # )
 
+def search_test():
+    import os
+
+    embedder = NomicEmbedder(device="mps", batch_size=4)
+    database = QdrantDatabase(host="localhost", port=6333)
+
+    image_test_data_csv = pd.read_csv("test_images.csv")
+
+    images = [Image.open("./dataset/test/fragments/" + img_path) for img_path in os.listdir("./dataset/test/fragments")]
+
+    query_embeddings = embedder.embed(images)
+
+    results = database.search(
+        querry=query_embeddings,
+        collection_name=collection_name,
+        limit=k,
+    )
+    for r, fragment in zip(results, os.listdir("./dataset/test/fragments")):
+        print(fragment, image_test_data_csv[image_test_data_csv["Component"] == fragment][["Original_image"]], "\nSources:")  
+        for rr in r:
+            print(rr.payload["source"])
+        print("\n")
 
 if __name__ == "__main__":
-    main()
+    search_test()
