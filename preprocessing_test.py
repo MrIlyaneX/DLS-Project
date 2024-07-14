@@ -39,7 +39,7 @@ def show_images(images, titles=None, columns=5, figsize=(15, 10)):
     plt.show()
 
 
-show_images(imgs['0000b366aaf9672a.jpg'])
+show_images(imgs['0000ef4409880196.jpg'])
 
 
 

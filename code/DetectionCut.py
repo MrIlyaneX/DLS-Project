@@ -1,9 +1,6 @@
-import fiftyone as fo
-import fiftyone.zoo as foz
 from PIL import Image
 from typing import List, Tuple, Any, Dict
 from .Base.ImageProcessingBase import ImageProcessingBase
-from IPython.display import display
 import os
 import pandas as pd
 

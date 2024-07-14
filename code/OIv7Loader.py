@@ -4,6 +4,7 @@ import fiftyone.zoo as foz
 from PIL import Image
 from .Base.DataLoader import DataLoader
 import pandas as pd
+import os
 
 
 class OIv7Loader(DataLoader):
@@ -20,6 +21,7 @@ class OIv7Loader(DataLoader):
         self.dataset = foz.load_zoo_dataset(
             "open-images-v7",
             split="train",
+            # split="validation",
             label_types=["detections"],
             dataset_dir=self.dataset_directory,
             classes=self.classes,
@@ -27,7 +29,18 @@ class OIv7Loader(DataLoader):
             # shuffle=True
         )
 
+        # self.remove_non_rgb_images()
         return self.dataset
+
+    def remove_non_rgb_images(self):
+        remove_imgs = []
+        for sample in self.dataset:
+            image_path = sample.filepath
+            with Image.open(image_path) as img:
+                if img.mode != 'RGB':
+                    remove_imgs.append(image_path)
+        for img in remove_imgs:
+            os.remove(img)
 
     def load_data(self, path: str = './dataset/train') -> List:
         images_dir = path + '/data'
