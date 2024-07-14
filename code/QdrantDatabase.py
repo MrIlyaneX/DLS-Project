@@ -7,6 +7,7 @@ from .Base.BaseDatabase import DatabaseBase
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, HnswConfig, PointStruct, VectorParams
 
+
 class QdrantDatabase(DatabaseBase):
     clint: QdrantClient
 
@@ -17,8 +18,8 @@ class QdrantDatabase(DatabaseBase):
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        self.client = QdrantClient(location=":memory:")
-        #self.client = QdrantClient(host=host, port=port, **kwargs)
+        # self.client = QdrantClient(location=":memory:")
+        self.client = QdrantClient(host=host, port=port, **kwargs)
 
     def create_collection(
         self,
@@ -32,12 +33,12 @@ class QdrantDatabase(DatabaseBase):
             self.client.create_collection(
                 collection_name=collection_name,
                 vectors_config=VectorParams(size=emb_size, distance=Distance.EUCLID),
-                hnsw_config=HnswConfig(
-                    m=m,  # Number of bi-directional links created for every new element during construction
-                    ef_construct=ef_construct,  # Size of the dynamic list for the nearest neighbors (used during the index construction)
-                    ef_search=ef_search,  # Size of the dynamic list for the nearest neighbors during search
-                    full_scan_threshold=10000,
-                ),
+                # hnsw_config=HnswConfig(
+                #     m=m,  # Number of bi-directional links created for every new element during construction
+                #     ef_construct=ef_construct,  # Size of the dynamic list for the nearest neighbors (used during the index construction)
+                #     ef_search=ef_search,  # Size of the dynamic list for the nearest neighbors during search
+                #     full_scan_threshold=10000,
+                # ),
             )
 
     def __add(
@@ -48,7 +49,6 @@ class QdrantDatabase(DatabaseBase):
         collection_name: str,
         **kwargs: Any,
     ) -> None:
-        
         self.client.upsert(
             collection_name=collection_name,
             points=[

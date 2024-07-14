@@ -1,5 +1,8 @@
+from ast import Tuple
 from typing import Any, List
 
+import numpy
+from torch import Tensor
 import torch.nn.functional as F
 from .Base.EmbedderBase import EmbedderBase
 from PIL import Image
@@ -28,13 +31,20 @@ class NomicEmbedder(EmbedderBase):
 
     def embed(self, images: List[Image.Image]) -> List:
         embeddings = []
+        skipped = 0
+        wrong_images = False
         for batch in range(0, len(images), self.batch_size):
-            image_batch = self.processor(
+            try:
+                image_batch = self.processor(
                 images[batch : min(len(images), batch + self.batch_size)], return_tensors="pt"
-            )
-            image_batch.to(self.device)
-            img_emb_batch = self.vision_model(**image_batch).last_hidden_state
+                )
+                image_batch.to(self.device)
+                img_emb_batch = self.vision_model(**image_batch).last_hidden_state
             
-            embeddings_batch = F.normalize(img_emb_batch[:, 0], p=2, dim=1)
-            embeddings.extend(embeddings_batch.detach().numpy())
+                embeddings_batch = F.normalize(img_emb_batch[:, 0], p=2, dim=1)
+                embeddings.extend(embeddings_batch.numpy(force=True))
+            except:
+                skipped += self.batch_size
+                #print([s.show() for s in images[batch : min(len(images), batch + self.batch_size)]])
+                print("Batch skipped")
         return embeddings
