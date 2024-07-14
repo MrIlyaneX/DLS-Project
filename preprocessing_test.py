@@ -6,8 +6,8 @@ import pandas as pd
 from PIL import Image
 import matplotlib.pyplot as plt
 
-detectionCutting = DetectionCut()
-imgs = detectionCutting.process_dataset()
+detector = DetectionCut()
+imgs = detector.process_dataset()
 
 print(len(imgs))
 print(len(imgs['0000b366aaf9672a.jpg']))

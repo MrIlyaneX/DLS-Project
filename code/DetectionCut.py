@@ -6,14 +6,16 @@ import pandas as pd
 import random
 import shutil
 from ultralytics import YOLO
+import matplotlib.pyplot as plt
 
 K = 0.2
+FLOWER_CODE = '/m/0c9ph5'
+FLOWER_ID = 195
 
 class DetectionCut(ImageProcessingBase):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.model = YOLO('yolov8m.pt')
-
+        self.model = YOLO('yolov8l-oiv7.pt')
 
     def process_dataset(self, path: str = './dataset/train') -> Dict[str, List[Image.Image]]:
         data_dir = os.path.join(path, 'data')
@@ -58,11 +60,62 @@ class DetectionCut(ImageProcessingBase):
         cropped_images = load_and_crop_images(data_dir, valid_detections)
         return cropped_images
 
-    def detect_and_crop_image(self, path):
-        results = model(source_path, conf=0.5, data=data_path, save=True)
+    def detect_and_crop_image(self, path: str) -> List[Image.Image]:
+        result = self.model(path, conf=0.5, verbose=False)
+        cropped_images = []
+
+        for detection in result[0].boxes.data:
+            class_id = int(detection[5])
+            if class_id == FLOWER_ID:
+                xmin, ymin, xmax, ymax = map(int, detection[:4])
+                image = Image.open(path)
+                cropped_image = image.crop((xmin, ymin, xmax, ymax))
+                cropped_images.append(cropped_image)
+
+        return cropped_images
+
+    def create_test_dataset_from_valid(self, df, num_images=25, split='validation'):
+        # Ensure the test directories exist
+        os.makedirs('./dataset/test/originals', exist_ok=True)
+        os.makedirs('./dataset/test/fragments', exist_ok=True)
+
+        # Get list of image files
+        data_dir = f'./dataset/{split}/data'
+        image_files = os.listdir(data_dir)
+
+        # Select a random subset of images
+        selected_images = random.sample(image_files, min(num_images, len(image_files)))
+
+        # Process each selected image
+        for image_name in selected_images:
+            # Copy the original image to the 'originals' folder
+            src_path = os.path.join(data_dir, image_name)
+            dst_path = os.path.join('./dataset/test/originals', image_name)
+            shutil.copyfile(src_path, dst_path)
+
+            # Detect and crop flowers from the image
+            cropped_images = self.detect_and_crop_image(src_path)
+            image_id = os.path.splitext(image_name)[0]
+
+            # Save the cropped image fragments
+            for index, cropped_image in enumerate(cropped_images):
+                fragment_name = f"{image_id}_{index}.jpg"
+                fragment_path = os.path.join('./dataset/test/fragments', fragment_name)
+                cropped_image.save(fragment_path)
+
+                df = df._append({
+                    "Original_image": image_name,
+                    "Component": fragment_name,
+                    "Method": "detection",
+                    "Component_size": cropped_image.size,
+                    "Image_size": cropped_image.size
+                }, ignore_index=True)
+
+        return df
+
 
     @staticmethod
-    def create_test_dataset(df, num_images=25, split='train'):
+    def create_test_dataset_from_train(df, num_images=25, split='train'):
         # Ensure the test directories exist
         os.makedirs('./dataset/test/originals', exist_ok=True)
         os.makedirs('./dataset/test/fragments', exist_ok=True)
@@ -76,8 +129,7 @@ class DetectionCut(ImageProcessingBase):
 
         # Load the detections CSV
         detections_df = pd.read_csv(f'./dataset/{split}/labels/detections.csv')
-        flower_label_id = '/m/0c9ph5'
-        valid_detections = detections_df[detections_df['LabelName'] == flower_label_id]
+        valid_detections = detections_df[detections_df['LabelName'] == FLOWER_CODE]
 
         # Process each selected image
         for image_name in selected_images:

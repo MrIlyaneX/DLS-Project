@@ -3,9 +3,9 @@ import pandas as pd
 
 df = pd.DataFrame(columns=["Original_image", "Component", "Method", "Component_size", "Image_size"])
 
-
-df = DetectionCut.create_test_dataset(df)
-df = DetectionCut.create_test_dataset(df, split='validation')
+detector = DetectionCut()
+df = detector.create_test_dataset_from_train(df)
+df = detector.create_test_dataset_from_valid(df)
 
 df.to_csv('test_images.csv', index=False)
 
