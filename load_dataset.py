@@ -2,8 +2,8 @@ from code.OIv7Loader import OIv7Loader
 from code.DetectionCut import DetectionCut
 from IPython.display import display
 
-dataloader = OIv7Loader(["Flower"], 700, path='./dataset/train/')
-dataset = dataloader.download_data()
+dataloader = OIv7Loader(["Flower"], 50, path='./dataset/')
+dataset = dataloader.download_data(split='validation', shuffle=True)
 dataloader.remove_non_rgb_images()
 
 print(dataset)
