@@ -12,10 +12,47 @@ K = 0.2
 FLOWER_CODE = '/m/0c9ph5'
 FLOWER_ID = 195
 
+
 class DetectionCut(ImageProcessingBase):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, path: str = './dataset/train', *args: Any, **kwargs: Any) -> None:
+        super().__init__(path, *args, **kwargs)
         self.model = YOLO('yolov8l-oiv7.pt')
+
+        labels_dir = os.path.join(self.path, 'labels')
+        detections_file = os.path.join(labels_dir, 'detections.csv')
+        detections_df = pd.read_csv(detections_file)
+        self.valid_detections = detections_df[(detections_df['ImageID'].isin(self.image_ids)) &
+                                              (detections_df['LabelName'] == FLOWER_CODE)]
+
+    def __len__(self):
+        return len(self.image_names)
+
+    def __getitem__(self, index: int):
+        image_name = self.image_names[index]
+        image_path = os.path.join(self.data_dir, image_name)
+        cropped_fragments = self.get_cropped_fragments(image_path, index)
+        return {image_name: cropped_fragments}
+
+    def get_cropped_fragments(self, image_path, index) -> List[Image.Image]:
+        cropped_fragments = []
+        if os.path.exists(image_path):
+            image = Image.open(image_path)
+            image_detections = self.valid_detections[self.valid_detections['ImageID'] == self.image_ids[index]]
+
+            for index, row in image_detections.iterrows():
+                width, height = image.size
+                xmin = int(row['XMin'] * width)
+                xmax = int(row['XMax'] * width)
+                ymin = int(row['YMin'] * height)
+                ymax = int(row['YMax'] * height)
+
+                cropped_image = image.crop((xmin, ymin, xmax, ymax))
+                cropped_fragments.append(cropped_image)
+        else:
+            print("Image not found (DetectionCut.__getitem__)")
+        return cropped_fragments
+
+    # сreate 2 separate methods to get cropped image: by detections.csv and by yolo model if no detections.csv
 
     def process_dataset(self, path: str = './dataset/train') -> Dict[str, List[Image.Image]]:
         data_dir = os.path.join(path, 'data')
@@ -28,9 +65,8 @@ class DetectionCut(ImageProcessingBase):
 
         detections_df = pd.read_csv(detections_file)
 
-        flower_label_id = '/m/0c9ph5'
         valid_detections = detections_df[(detections_df['ImageID'].isin(image_ids)) &
-                                         (detections_df['LabelName'] == flower_label_id)]
+                                         (detections_df['LabelName'] == FLOWER_ID)]
 
         def load_and_crop_images(data_dir, valid_detections):
             cropped_images = {}

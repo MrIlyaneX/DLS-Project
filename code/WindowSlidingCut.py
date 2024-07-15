@@ -7,10 +7,42 @@ from .Base.ImageProcessingBase import ImageProcessingBase
 
 
 class SlidingWindowCut(ImageProcessingBase):
-    def __init__(self, size: int, step: int, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, size: int, step: int, path: str = './dataset/train', *args: Any, **kwargs: Any) -> None:
+        super().__init__(path, *args, **kwargs)
         self.size = size
         self.step = step
+
+    def __len__(self):
+        return len(self.image_names)
+
+    def __getitem__(self, index):
+        image_name = self.image_names[index]
+        image_path = os.path.join(self.data_dir, image_name)
+        cropped_fragments = self.get_cropped_fragments(image_path, index)
+        return {image_name: cropped_fragments}
+
+    def get_cropped_fragments(self, image_path, index) -> List[Image.Image]:
+        cropped_fragments = []
+        if os.path.exists(image_path):
+            image = Image.open(image_path)
+            cropped_fragments = self.sliding_window(image, self.size, self.step)
+        else:
+            print("Image not found (WindowSlidingCut.__getitem__)")
+        return cropped_fragments
+
+    @staticmethod
+    def sliding_window(image: Image.Image, window_size: int, step_size: int) -> List[Image.Image]:
+        cropped_images = []
+        image_width, image_height = image.size
+
+        for y in range(0, image_height - window_size + 1, step_size):
+            for x in range(0, image_width - window_size + 1, step_size):
+                box = (x, y, x + window_size, y + window_size)
+                cropped_image = image.crop(box)
+                cropped_images.append(cropped_image)
+
+        return cropped_images
+
 
     def process_dataset(self, path: str = './dataset/train') -> dict[Any, Any]:
         global_component_counter = 0
