@@ -7,8 +7,12 @@ from code.DetectionCut import DetectionCut
 
 from PIL import Image
 
+from qdrant_client import models
+
 import numpy as np
 import pandas as pd
+
+from metrics import get_metrics
 
 collection_name: str = "image_vector_store_v1"
 emb_size: int = 768
@@ -92,7 +96,7 @@ def search_test():
     embedder = NomicEmbedder(device="mps", batch_size=4)
     database = QdrantDatabase(host="localhost", port=6333)
 
-    image_test_data_csv = pd.read_csv("test_images.csv")
+    image_test_data_csv = pd.read_csv("test_images.csv", index_col=False)
 
     images = [
         Image.open("./dataset/test/fragments/" + img_path)
@@ -106,20 +110,37 @@ def search_test():
         collection_name=collection_name,
         limit=k,
     )
+
     for r, fragment in zip(results, os.listdir("./dataset/test/fragments")):
-        print(
-            fragment,
-            image_test_data_csv[image_test_data_csv["Component"] == fragment][
-                ["Original_image"]
-            ],
-            "\nSources:",
+        source_image_name = image_test_data_csv[
+            image_test_data_csv["Component"] == fragment
+        ]["Original_image"].values[0]
+
+        number_of_source_embeddings = len(
+            database.client.scroll(
+                collection_name=collection_name,
+                scroll_filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="source",
+                            match=models.MatchValue(value=f"{source_image_name}"),
+                        ),
+                    ]
+                ),
+                limit=1000,
+            )[0]
         )
-        for rr in r:
-            print(rr.payload["source"])
-        print("\n")
+        
+        top_k_sources = [rr.payload["source"] for rr in r]
+        metrics = get_metrics(fragment, top_k_sources, number_of_source_embeddings)
+        print(
+            f"Fragment: {fragment}    Source: {source_image_name}.   Number of fragments in original: {number_of_source_embeddings}",
+            f"\nTop k sources: {top_k_sources}\nMetrics: {metrics}\n\n\n",
+        )
 
 
 if __name__ == "__main__":
-    a = np.load("./data/embeddings.npy", mmap_mode='r+')
-    print(len(a))
-    #dimentionality_reduction()
+    # a = np.load("./data/embeddings.npy", mmap_mode="r+")
+    # print(len(a))
+    # # dimentionality_reduction()
+    search_test()
