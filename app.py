@@ -1,3 +1,6 @@
+import qdrant_client
+import qdrant_client.conversions
+import qdrant_client.conversions.common_types
 from sympy import im
 from tqdm import tqdm
 from code.NomicEmbedder import NomicEmbedder
@@ -16,7 +19,7 @@ from metrics import get_metrics
 
 collection_name: str = "image_vector_store_v1"
 emb_size: int = 768
-k: int = 5
+k: int = 10
 image_directory: str = "./dataset/train/"
 
 b_size = 500
@@ -132,7 +135,7 @@ def search_test():
         )
         
         top_k_sources = [rr.payload["source"] for rr in r]
-        metrics = get_metrics(fragment, top_k_sources, number_of_source_embeddings)
+        metrics = get_metrics(source_image_name, top_k_sources, number_of_source_embeddings)
         print(
             f"Fragment: {fragment}    Source: {source_image_name}.   Number of fragments in original: {number_of_source_embeddings}",
             f"\nTop k sources: {top_k_sources}\nMetrics: {metrics}\n\n\n",
@@ -144,3 +147,13 @@ if __name__ == "__main__":
     # print(len(a))
     # # dimentionality_reduction()
     search_test()
+
+    # database = QdrantDatabase(host="localhost", port=6333)
+    # database.client.update_collection(
+    #     collection_name=collection_name,
+    #     hnsw_config=models.HnswConfigDiff(
+    #                 m=32,  # Number of bi-directional links created for every new element during construction
+    #                 ef_construct=300,  # Size of the dynamic list for the nearest neighbors (used during the index construction)
+    #                 full_scan_threshold=10000,
+    #             ),
+    # )

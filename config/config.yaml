@@ -144,10 +144,10 @@ storage:
   # Default parameters of HNSW Index. Could be overridden for each collection or named vector individually
   hnsw_index:
     # Number of edges per node in the index graph. Larger the value - more accurate the search, more space required.
-    m: 16
+    m: 32
 
     # Number of neighbours to consider during the index building. Larger the value - more accurate the search, more time required to build index.
-    ef_construct: 100
+    ef_construct: 300
 
     # Minimal size (in KiloBytes) of vectors for additional payload-based indexing.
     # If payload chunk is smaller than `full_scan_threshold_kb` additional indexing won't be used -
@@ -272,11 +272,9 @@ cluster:
     # We encourage you NOT to change this parameter unless you know what you are doing.
     tick_period_ms: 100
 
-
 # Set to true to prevent service from sending usage statistics to the developers.
 # Read more: https://qdrant.tech/documentation/guides/telemetry
 telemetry_disabled: true
-
 
 # TLS configuration.
 # Required if either service.enable_tls or cluster.p2p.enable_tls is true.
