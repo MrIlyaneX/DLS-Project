@@ -72,6 +72,7 @@ class QdrantDatabase(DatabaseBase):
         self,
         querry: List[np.ndarray],
         collection_name: str,
+        with_vectors: bool = False,
         limit: int = 5,
         **kwargs: Any,
     ) -> List[List[ScoredPoint]]:
@@ -80,7 +81,7 @@ class QdrantDatabase(DatabaseBase):
                 collection_name=collection_name,
                 query_vector=q,
                 limit=limit,
-                with_vectors=False,
+                with_vectors=with_vectors,
             )
             for q in querry
         ]

@@ -1,3 +1,4 @@
+from sympy import im
 from tqdm import tqdm
 from code.NomicEmbedder import NomicEmbedder
 from code.QdrantDatabase import QdrantDatabase
@@ -6,12 +7,15 @@ from code.DetectionCut import DetectionCut
 
 from PIL import Image
 
+import numpy as np
 import pandas as pd
 
 collection_name: str = "image_vector_store_v1"
 emb_size: int = 768
 k: int = 5
 image_directory: str = "./dataset/train/"
+
+b_size = 500
 
 
 def initialize() -> tuple[NomicEmbedder, QdrantDatabase]:
@@ -30,6 +34,32 @@ def initialize() -> tuple[NomicEmbedder, QdrantDatabase]:
     )
 
     return embedder, database, [sliding_window, cropper]
+
+
+def dimentionality_reduction():
+    from sklearn.random_projection import GaussianRandomProjection
+
+    embedder, database, preprocessors = initialize()
+
+    images = [
+        preprocessor.process_dataset(image_directory) for preprocessor in preprocessors
+    ]
+
+    image_names = images[0].keys()
+    with open("./data/embeddings.npy", "wb") as f:
+        for image_name in tqdm(image_names):
+            np.save(
+                f,
+                np.array(
+                    embedder.embed(
+                        [
+                            img
+                            for i in range(len(images))
+                            for img in images[i][image_name]
+                        ]
+                    )
+                ),
+            )
 
 
 def process_dataset() -> None:
@@ -64,7 +94,10 @@ def search_test():
 
     image_test_data_csv = pd.read_csv("test_images.csv")
 
-    images = [Image.open("./dataset/test/fragments/" + img_path) for img_path in os.listdir("./dataset/test/fragments")]
+    images = [
+        Image.open("./dataset/test/fragments/" + img_path)
+        for img_path in os.listdir("./dataset/test/fragments")
+    ]
 
     query_embeddings = embedder.embed(images)
 
@@ -74,10 +107,19 @@ def search_test():
         limit=k,
     )
     for r, fragment in zip(results, os.listdir("./dataset/test/fragments")):
-        print(fragment, image_test_data_csv[image_test_data_csv["Component"] == fragment][["Original_image"]], "\nSources:")  
+        print(
+            fragment,
+            image_test_data_csv[image_test_data_csv["Component"] == fragment][
+                ["Original_image"]
+            ],
+            "\nSources:",
+        )
         for rr in r:
             print(rr.payload["source"])
         print("\n")
 
+
 if __name__ == "__main__":
-    search_test()
+    a = np.load("./data/embeddings.npy", mmap_mode='r+')
+    print(len(a))
+    #dimentionality_reduction()

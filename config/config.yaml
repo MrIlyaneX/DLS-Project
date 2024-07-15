@@ -121,7 +121,7 @@ storage:
     indexing_threshold_kb: 20000
 
     # Interval between forced flushes.
-    flush_interval_sec: 5
+    flush_interval_sec: 10
 
     # Max number of threads (jobs) for running optimizations per shard.
     # Note: each optimization job will also use `max_indexing_threads` threads by itself for index building.
@@ -162,7 +162,7 @@ storage:
     max_indexing_threads: 0
 
     # Store HNSW index on disk. If set to false, index will be stored in RAM. Default: false
-    on_disk: false
+    on_disk: True
 
     # Custom M param for hnsw graph built for payload index. If not set, default M will be used.
     payload_m: null
@@ -194,7 +194,7 @@ storage:
 
 service:
   # Maximum size of POST data in a single request in megabytes
-  max_request_size_mb: 32
+  max_request_size_mb: 64
 
   # Number of parallel workers used for serving the api. If 0 - equal to the number of available cores.
   # If missing - Same as storage.max_search_threads
@@ -275,7 +275,7 @@ cluster:
 
 # Set to true to prevent service from sending usage statistics to the developers.
 # Read more: https://qdrant.tech/documentation/guides/telemetry
-telemetry_disabled: false
+telemetry_disabled: true
 
 
 # TLS configuration.
