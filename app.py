@@ -17,7 +17,7 @@ import pandas as pd
 
 from metrics import get_metrics
 
-collection_name: str = "image_vector_store_v1"
+collection_name: str = "image_vector_store_v1.1"
 emb_size: int = 768
 k: int = 10
 image_directory: str = "./dataset/train/"
@@ -35,9 +35,6 @@ def initialize() -> tuple[NomicEmbedder, QdrantDatabase]:
     database.create_collection(
         collection_name=collection_name,
         emb_size=emb_size,
-        m=16,
-        ef_construct=250,
-        ef_search=100,
     )
 
     return embedder, database, [sliding_window, cropper]
@@ -48,23 +45,18 @@ def dimentionality_reduction():
 
     embedder, database, preprocessors = initialize()
 
-    images = [
-        preprocessor.process_dataset(image_directory) for preprocessor in preprocessors
-    ]
+    images_count = len(preprocessors[0])
 
-    image_names = images[0].keys()
     with open("./data/embeddings.npy", "wb") as f:
-        for image_name in tqdm(image_names):
+        for image_number in tqdm(range(images_count)):
             np.save(
                 f,
-                np.array(
-                    embedder.embed(
-                        [
-                            img
-                            for i in range(len(images))
-                            for img in images[i][image_name]
-                        ]
-                    )
+                embedder.embed(
+                    [
+                        img
+                        for i in range(len(preprocessors))
+                        for img in preprocessors[i][image_number]["cropped_fragments"]
+                    ]
                 ),
             )
 
@@ -72,16 +64,19 @@ def dimentionality_reduction():
 def process_dataset() -> None:
     embedder, database, preprocessors = initialize()
 
-    images = [
-        preprocessor.process_dataset(image_directory) for preprocessor in preprocessors
-    ]
-
-    image_names = images[0].keys()
+    images_count = len(preprocessors[0])
     counter = 0
-    for image_name in tqdm(image_names):
+
+    for image_number in tqdm(range(images_count)):
+        image_name = preprocessors[1][image_number]["image_name"]
         image_embeddings = embedder.embed(
-            [img for i in range(len(images)) for img in images[i][image_name]]
+            [
+                img
+                for i in range(len(preprocessors))
+                for img in preprocessors[i][image_number]["cropped_fragments"]
+            ]
         )
+
         idx = range(counter, counter + len(image_embeddings))
         counter += len(image_embeddings)
 
@@ -133,9 +128,11 @@ def search_test():
                 limit=1000,
             )[0]
         )
-        
+
         top_k_sources = [rr.payload["source"] for rr in r]
-        metrics = get_metrics(source_image_name, top_k_sources, number_of_source_embeddings)
+        metrics = get_metrics(
+            source_image_name, top_k_sources, number_of_source_embeddings
+        )
         print(
             f"Fragment: {fragment}    Source: {source_image_name}.   Number of fragments in original: {number_of_source_embeddings}",
             f"\nTop k sources: {top_k_sources}\nMetrics: {metrics}\n\n\n",
@@ -146,7 +143,7 @@ if __name__ == "__main__":
     # a = np.load("./data/embeddings.npy", mmap_mode="r+")
     # print(len(a))
     # # dimentionality_reduction()
-    search_test()
+    process_dataset()
 
     # database = QdrantDatabase(host="localhost", port=6333)
     # database.client.update_collection(

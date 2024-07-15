@@ -19,7 +19,7 @@ class SlidingWindowCut(ImageProcessingBase):
         image_name = self.image_names[index]
         image_path = os.path.join(self.data_dir, image_name)
         cropped_fragments = self.get_cropped_fragments(image_path, index)
-        return {image_name: cropped_fragments}
+        return {"image_name": image_name, "cropped_fragments": cropped_fragments}
 
     def get_cropped_fragments(self, image_path, index) -> List[Image.Image]:
         cropped_fragments = []
