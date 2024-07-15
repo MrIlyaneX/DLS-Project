@@ -43,23 +43,37 @@ def initialize() -> tuple[NomicEmbedder, QdrantDatabase]:
 def dimentionality_reduction():
     from sklearn.random_projection import GaussianRandomProjection
 
-    embedder, database, preprocessors = initialize()
+    embedder = NomicEmbedder(device="mps", batch_size=4)
+    preprocessors = [SlidingWindowCut(size=300, step=270), DetectionCut()]
 
     images_count = len(preprocessors[0])
 
-    with open("./data/embeddings.npy", "wb") as f:
-        for image_number in tqdm(range(images_count)):
-            np.save(
-                f,
+    for image_number in tqdm(range(images_count)):
+        np.save(
+            f"./data/embeddings/emb{image_number}",
+            np.array(
                 embedder.embed(
                     [
                         img
                         for i in range(len(preprocessors))
                         for img in preprocessors[i][image_number]["cropped_fragments"]
                     ]
-                ),
-            )
+                )
+            ),
 
+        )
+
+
+def deload():
+    cropper = DetectionCut()
+    images_count = len(cropper)
+
+    all_emeddings = []
+
+    for image_number in tqdm(range(images_count)):
+        all_emeddings.extend(np.load(f"./data/embeddings/emb{image_number}.npy").tolist())
+
+    np.save("./data/embeddings_all/all", np.array(all_emeddings))
 
 def process_dataset() -> None:
     embedder, database, preprocessors = initialize()
@@ -143,7 +157,7 @@ if __name__ == "__main__":
     # a = np.load("./data/embeddings.npy", mmap_mode="r+")
     # print(len(a))
     # # dimentionality_reduction()
-    process_dataset()
+    # process_dataset()
 
     # database = QdrantDatabase(host="localhost", port=6333)
     # database.client.update_collection(
@@ -154,3 +168,5 @@ if __name__ == "__main__":
     #                 full_scan_threshold=10000,
     #             ),
     # )
+    #dimentionality_reduction()
+    deload()
