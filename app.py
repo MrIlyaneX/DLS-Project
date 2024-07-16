@@ -17,7 +17,7 @@ import pandas as pd
 
 from metrics import get_metrics
 
-collection_name: str = "image_vector_store_v1.1"
+collection_name: str = "image_vector_store_v1"
 emb_size: int = 768
 k: int = 10
 image_directory: str = "./dataset/train/"
@@ -60,7 +60,6 @@ def dimentionality_reduction():
                     ]
                 )
             ),
-
         )
 
 
@@ -71,9 +70,35 @@ def deload():
     all_emeddings = []
 
     for image_number in tqdm(range(images_count)):
-        all_emeddings.extend(np.load(f"./data/embeddings/emb{image_number}.npy").tolist())
+        all_emeddings.extend(
+            np.load(f"./data/embeddings/emb{image_number}.npy").tolist()
+        )
 
     np.save("./data/embeddings_all/all", np.array(all_emeddings))
+
+
+def npy_to_db():
+    database = QdrantDatabase(host="localhost", port=6333)
+
+    cropper = DetectionCut()
+    images_count = len(cropper)
+
+    counter = 0
+
+    for image_number in tqdm(range(images_count)):
+        image_name = cropper[image_number]["image_name"]
+        embeddings = np.load(f"./data/embeddings/emb{image_number}.npy").tolist()
+
+        idx = range(counter, counter + len(embeddings))
+        counter += len(embeddings)
+
+        database.add(
+            vectors=embeddings,
+            idx=[i for i in idx],
+            payload=[{"source": image_name} for _ in range(len(embeddings))],
+            collection_name=collection_name,
+        )
+
 
 def process_dataset() -> None:
     embedder, database, preprocessors = initialize()
@@ -174,5 +199,9 @@ if __name__ == "__main__":
     #                 full_scan_threshold=10000,
     #             ),
     # )
-    #dimentionality_reduction()
-    deload()
+    # dimentionality_reduction()
+    # deload()
+
+    search_test()
+
+    #npy_to_db()
