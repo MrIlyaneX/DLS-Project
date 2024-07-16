@@ -127,6 +127,9 @@ def search_test():
         source_image_name = image_test_data_csv[
             image_test_data_csv["Component"] == fragment
         ]["Original_image"].values[0]
+        fragment_generation_method = image_test_data_csv[
+            image_test_data_csv["Component"] == fragment
+        ]["Method"].values[0]
 
         number_of_source_embeddings = len(
             database.client.scroll(
@@ -151,6 +154,9 @@ def search_test():
             f"Fragment: {fragment}    Source: {source_image_name}.   Number of fragments in original: {number_of_source_embeddings}",
             f"\nTop k sources: {top_k_sources}\nMetrics: {metrics}\n\n\n",
         )
+        fragment_metrics = {'method': fragment_generation_method,  # one of the 4 strings each meaning the method ('window_train', 'window_validation', 'detection_train', 'detection_validation')
+                            'metrics': metrics  # dictionary with metrics
+        }
 
 
 if __name__ == "__main__":
