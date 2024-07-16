@@ -4,6 +4,9 @@ from tqdm import tqdm
 from PIL import Image
 from typing import Any, List, Tuple, Dict
 from .Base.ImageProcessingBase import ImageProcessingBase
+import pandas as pd
+import random
+import shutil
 
 
 class SlidingWindowCut(ImageProcessingBase):
@@ -11,15 +14,6 @@ class SlidingWindowCut(ImageProcessingBase):
         super().__init__(path, *args, **kwargs)
         self.size = size
         self.step = step
-
-    def __len__(self):
-        return len(self.image_names)
-
-    def __getitem__(self, index):
-        image_name = self.image_names[index]
-        image_path = os.path.join(self.data_dir, image_name)
-        cropped_fragments = self.get_cropped_fragments(image_path, index)
-        return {"image_name": image_name, "cropped_fragments": cropped_fragments}
 
     def get_cropped_fragments(self, image_path, index) -> List[Image.Image]:
         cropped_fragments = []
@@ -78,3 +72,55 @@ class SlidingWindowCut(ImageProcessingBase):
         input_folder = os.path.join(path, 'data')
         process_images_folder(input_folder, self.size, self.step)
         return components_dict
+
+    @staticmethod
+    def create_test_dataset(df, num_images=25, split="train"):
+        # Ensure the test directories exist
+        os.makedirs("./dataset/test/originals", exist_ok=True)
+        os.makedirs("./dataset/test/fragments", exist_ok=True)
+
+        # Get list of image files
+        data_dir = f"./dataset/{split}/data"
+        image_files = os.listdir(data_dir)
+
+        # Select a random subset of images
+        selected_images = random.sample(image_files, min(num_images + 10, len(image_files)))
+
+        # Process each selected image
+        num_images_added = 0
+        for image_name in selected_images:
+            # Copy the original image to the 'originals' folder
+            src_path = os.path.join(data_dir, image_name)
+
+            # Crop the image based on the detection boxes
+            image_id = os.path.splitext(image_name)[0]
+            image = Image.open(src_path)
+
+            # Crop image by sliding window and select random cropped fragment
+            cropped_images = SlidingWindowCut.sliding_window(image, 300, 270)
+            if cropped_images:
+                selected_cropped_image = random.choice(cropped_images)
+
+                # Save the cropped image fragment
+                fragment_name = f"{image_id}_{random.randint(10000,99999)}.jpg"
+                fragment_path = os.path.join("./dataset/test/fragments", fragment_name)
+                selected_cropped_image.save(fragment_path)
+                dst_path = os.path.join("./dataset/test/originals", image_name)
+                shutil.copyfile(src_path, dst_path)
+
+                df = df._append(
+                    {
+                        "Original_image": image_name,
+                        "Component": fragment_name,
+                        "Method": f"window_{split}",
+                        "Component_size": selected_cropped_image.size,
+                        "Image_size": image.size,
+                    },
+                    ignore_index=True,
+                )
+                num_images_added += 1
+
+                if num_images_added >= num_images:
+                    # print(f"25 done (win {split[:5]})")
+                    break
+        return df

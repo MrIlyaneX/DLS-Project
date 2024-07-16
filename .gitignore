@@ -169,3 +169,4 @@ dataset/
 
 data/embeddings
 data/embeddings_all
+test_images.csv

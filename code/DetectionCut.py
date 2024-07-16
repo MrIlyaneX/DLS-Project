@@ -28,15 +28,6 @@ class DetectionCut(ImageProcessingBase):
             & (detections_df["LabelName"] == FLOWER_CODE)
         ]
 
-    def __len__(self):
-        return len(self.image_names)
-
-    def __getitem__(self, index: int):
-        image_name = self.image_names[index]
-        image_path = os.path.join(self.data_dir, image_name)
-        cropped_fragments = self.get_cropped_fragments(image_path, index)
-        return {"image_name": image_name, "cropped_fragments": cropped_fragments}
-
     def get_cropped_fragments(self, image_path, index) -> List[Image.Image]:
         cropped_fragments = []
         if os.path.exists(image_path):
@@ -59,6 +50,24 @@ class DetectionCut(ImageProcessingBase):
         return cropped_fragments
 
     # сreate 2 separate methods to get cropped image: by detections.csv and by yolo model if no detections.csv
+    def detect_and_crop_image(self, path: str) -> List[Image.Image]:
+        '''
+        Detects flower on the unlabeled image and returns list of the images cropped by detected objects.
+        :param path: path to image
+        :return: list of PIL images
+        '''
+        result = self.model(path, conf=0.5, verbose=False)
+        cropped_images = []
+
+        for detection in result[0].boxes.data:
+            class_id = int(detection[5])
+            if class_id == FLOWER_ID:
+                xmin, ymin, xmax, ymax = map(int, detection[:4])
+                image = Image.open(path)
+                cropped_image = image.crop((xmin, ymin, xmax, ymax))
+                cropped_images.append(cropped_image)
+
+        return cropped_images
 
     def process_dataset(
         self, path: str = "./dataset/train"
@@ -108,20 +117,6 @@ class DetectionCut(ImageProcessingBase):
         cropped_images = load_and_crop_images(data_dir, valid_detections)
         return cropped_images
 
-    def detect_and_crop_image(self, path: str) -> List[Image.Image]:
-        result = self.model(path, conf=0.5, verbose=False)
-        cropped_images = []
-
-        for detection in result[0].boxes.data:
-            class_id = int(detection[5])
-            if class_id == FLOWER_ID:
-                xmin, ymin, xmax, ymax = map(int, detection[:4])
-                image = Image.open(path)
-                cropped_image = image.crop((xmin, ymin, xmax, ymax))
-                cropped_images.append(cropped_image)
-
-        return cropped_images
-
     def create_test_dataset_from_valid(self, df, num_images=25, split="validation"):
         # Ensure the test directories exist
         os.makedirs("./dataset/test/originals", exist_ok=True)
@@ -132,36 +127,45 @@ class DetectionCut(ImageProcessingBase):
         image_files = os.listdir(data_dir)
 
         # Select a random subset of images
-        selected_images = random.sample(image_files, min(num_images, len(image_files)))
+        selected_images = random.sample(image_files, min(num_images + 20, len(image_files)))
 
         # Process each selected image
+        num_images_added = 0
         for image_name in selected_images:
             # Copy the original image to the 'originals' folder
             src_path = os.path.join(data_dir, image_name)
-            dst_path = os.path.join("./dataset/test/originals", image_name)
-            shutil.copyfile(src_path, dst_path)
+
+            # Crop the image based on the detection boxes
+            image_id = os.path.splitext(image_name)[0]
+            image = Image.open(src_path)
 
             # Detect and crop flowers from the image
             cropped_images = self.detect_and_crop_image(src_path)
-            image_id = os.path.splitext(image_name)[0]
+            if cropped_images:
+                selected_cropped_image = random.choice(cropped_images)
 
-            # Save the cropped image fragments
-            for index, cropped_image in enumerate(cropped_images):
-                fragment_name = f"{image_id}_{index}.jpg"
+                # Save the cropped image fragments
+                fragment_name = f"{image_id}_{random.randint(10000,99999)}.jpg"
                 fragment_path = os.path.join("./dataset/test/fragments", fragment_name)
-                cropped_image.save(fragment_path)
+                selected_cropped_image.save(fragment_path)
+                dst_path = os.path.join("./dataset/test/originals", image_name)
+                shutil.copyfile(src_path, dst_path)
 
                 df = df._append(
                     {
                         "Original_image": image_name,
                         "Component": fragment_name,
-                        "Method": "detection",
-                        "Component_size": cropped_image.size,
-                        "Image_size": cropped_image.size,
+                        "Method": f"detection_{split}",
+                        "Component_size": selected_cropped_image.size,
+                        "Image_size": image.size,
                     },
                     ignore_index=True,
                 )
+                num_images_added += 1
 
+                if num_images_added >= num_images:
+                    # print("25 done (det valid)")
+                    break
         return df
 
     @staticmethod
@@ -175,18 +179,17 @@ class DetectionCut(ImageProcessingBase):
         image_files = os.listdir(data_dir)
 
         # Select a random subset of images
-        selected_images = random.sample(image_files, min(num_images, len(image_files)))
+        selected_images = random.sample(image_files, min(num_images + 10, len(image_files)))
 
         # Load the detections CSV
         detections_df = pd.read_csv(f"./dataset/{split}/labels/detections.csv")
         valid_detections = detections_df[detections_df["LabelName"] == FLOWER_CODE]
 
         # Process each selected image
+        num_images_added = 0
         for image_name in selected_images:
             # Copy the original image to the 'originals' folder
             src_path = os.path.join(data_dir, image_name)
-            dst_path = os.path.join("./dataset/test/originals", image_name)
-            shutil.copyfile(src_path, dst_path)
 
             # Crop the image based on the detection boxes
             image_id = os.path.splitext(image_name)[0]
@@ -194,8 +197,11 @@ class DetectionCut(ImageProcessingBase):
             width, height = image.size
 
             image_detections = valid_detections[valid_detections["ImageID"] == image_id]
+            detections_list = list(image_detections.iterrows())
+            if detections_list:
+                selected_image_detection = random.choice(detections_list)
+                index, row = selected_image_detection
 
-            for index, row in image_detections.iterrows():
                 xmin = int(row["XMin"] * width)
                 xmax = int(row["XMax"] * width)
                 ymin = int(row["YMin"] * height)
@@ -215,19 +221,26 @@ class DetectionCut(ImageProcessingBase):
                 )
 
                 # Save the cropped image fragment
-                fragment_name = f"{image_id}_{index}.jpg"
+                fragment_name = f"{image_id}_{random.randint(10000,99999)}.jpg"
                 fragment_path = os.path.join("./dataset/test/fragments", fragment_name)
                 cropped_image.save(fragment_path)
+                dst_path = os.path.join("./dataset/test/originals", image_name)
+                shutil.copyfile(src_path, dst_path)
 
                 df = df._append(
                     {
                         "Original_image": image_name,
                         "Component": fragment_name,
-                        "Method": "detection",
+                        "Method": f"detection_{split}",
                         "Component_size": cropped_image.size,
                         "Image_size": image.size,
                     },
                     ignore_index=True,
                 )
+                num_images_added += 1
+
+                if num_images_added >= num_images:
+                    # print("25 done (det train)")
+                    break
 
         return df
