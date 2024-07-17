@@ -4,7 +4,7 @@ import numpy as np
 from qdrant_client.http.models.models import ScoredPoint
 
 from .Base.BaseDatabase import DatabaseBase
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, models
 from qdrant_client.models import Distance, HnswConfig, PointStruct, VectorParams
 
 
@@ -82,6 +82,7 @@ class QdrantDatabase(DatabaseBase):
                 query_vector=q,
                 limit=limit,
                 with_vectors=with_vectors,
+                search_params=models.SearchParams(hnsw_ef=128, exact=False),
             )
             for q in querry
         ]

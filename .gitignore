@@ -171,4 +171,8 @@ notebooks/models
 
 data/embeddings
 data/embeddings_all
+data/embeddings_small_AE
+data/embeddings_small_pca
+data/embeddings_small_gaussian
+
 test_images.csv

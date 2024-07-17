@@ -56,11 +56,11 @@ def get_metrics(fragment_filename, k_candidates, total_relevants):
 
     return metrics
 
-# input fragment
-fragment_filename = 'fragment.jpg'
-# input k candidates
-k_candidates = ['fragment.jpg' for _ in range(5)]
-# k_candidates = ['fragment.jpg', 'fragment.jpg', 'fragmen5t.jpg', 'fragment7.jpg', 'fragmen7t.jpg']
-# number of all relevant documents in dataset
-total_relevants = 6
-print(get_metrics(fragment_filename, k_candidates, total_relevants))
+# # input fragment
+# fragment_filename = 'fragment.jpg'
+# # input k candidates
+# k_candidates = ['fragment.jpg' for _ in range(5)]
+# # k_candidates = ['fragment.jpg', 'fragment.jpg', 'fragmen5t.jpg', 'fragment7.jpg', 'fragmen7t.jpg']
+# # number of all relevant documents in dataset
+# total_relevants = 6
+# print(get_metrics(fragment_filename, k_candidates, total_relevants))

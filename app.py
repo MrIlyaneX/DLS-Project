@@ -179,9 +179,72 @@ def search_test():
             f"Fragment: {fragment}    Source: {source_image_name}.   Number of fragments in original: {number_of_source_embeddings}",
             f"\nTop k sources: {top_k_sources}\nMetrics: {metrics}\n\n\n",
         )
-        fragment_metrics = {'method': fragment_generation_method,  # one of the 4 strings each meaning the method ('window_train', 'window_validation', 'detection_train', 'detection_validation')
-                            'metrics': metrics  # dictionary with metrics
+        fragment_metrics = {
+            "method": fragment_generation_method,  # one of the 4 strings each meaning the method ('window_train', 'window_validation', 'detection_train', 'detection_validation')
+            "metrics": metrics,  # dictionary with metrics
         }
+
+
+def create_databases():
+    from qdrant_client.models import Distance, VectorParams
+    from qdrant_client import models
+
+    col_name = "embeddings_small_pca"
+
+    low_dataset = np.load(f"./data/{col_name}/pca.npy")
+
+    cropper = DetectionCut()
+    database = QdrantDatabase(host="localhost", port=6333)
+
+    col_name += "_Cos"
+    if not database.client.collection_exists(collection_name=col_name):
+        database.client.create_collection(
+            collection_name=col_name,
+            vectors_config=VectorParams(
+                size=526,
+                distance=Distance.COSINE,
+                hnsw_config=models.HnswConfigDiff(
+                    m=64,
+                    ef_construct=526,
+                ),
+            ),
+            hnsw_config=models.HnswConfigDiff(
+                m=64,  # Number of bi-directional links created for every new element during construction
+                ef_construct=526,  # Size of the dynamic list for the nearest neighbors (used during the index construction)
+                full_scan_threshold=10000,
+            ),
+        )
+
+    images_count = len(cropper)
+    counter = 0
+
+    for image_number in tqdm(range(images_count)):
+        image_name = cropper[image_number]["image_name"]
+
+        embeddings = np.load(
+            f"./data/embeddings/emb{image_number}.npy"
+        ).tolist()  # find the #n of embeddings per image
+
+        idx = range(counter, counter + len(embeddings))
+
+        database.add(
+            vectors=low_dataset[counter : counter + len(embeddings)],
+            idx=[i for i in idx],
+            payload=[{"source": image_name} for _ in range(len(embeddings))],
+            collection_name=col_name,
+        )
+
+        counter += len(embeddings)
+
+    database.client.update_collection(
+        collection_name=col_name,
+        hnsw_config=models.HnswConfigDiff(
+            m=64,  # Number of bi-directional links created for every new element during construction
+            ef_construct=256,  # Size of the dynamic list for the nearest neighbors (used during the index construction)
+            full_scan_threshold=10000,
+        ),
+        optimizer_config=models.OptimizersConfigDiff(indexing_threshold=5000),
+    )
 
 
 if __name__ == "__main__":
@@ -190,7 +253,7 @@ if __name__ == "__main__":
     # # dimentionality_reduction()
     # process_dataset()
 
-    # database = QdrantDatabase(host="localhost", port=6333)
+    #database = QdrantDatabase(host="localhost", port=6333)
     # database.client.update_collection(
     #     collection_name=collection_name,
     #     hnsw_config=models.HnswConfigDiff(
@@ -202,6 +265,23 @@ if __name__ == "__main__":
     # dimentionality_reduction()
     # deload()
 
-    search_test()
 
-    #npy_to_db()
+    create_databases()
+
+    names_original = [
+        "image_vector_store_v1",
+        "image_vector_store_v1_cosine"
+    ]
+
+    names_lower_dim = [
+        "embeddings_small_pca_Eucl",
+        "embeddings_small_gaussian_Eucl",
+        "embeddings_small_AE_Eucl",
+        "embeddings_small_pca_Cos",
+        "embeddings_small_gaussian_Cos",
+        "embeddings_small_AE_Cos"
+    ]
+
+# search_test()
+
+# npy_to_db()
