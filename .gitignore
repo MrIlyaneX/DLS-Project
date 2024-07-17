@@ -167,6 +167,8 @@ cython_debug/
 
 dataset/
 
+notebooks/models
+
 data/embeddings
 data/embeddings_all
 test_images.csv
