@@ -127,7 +127,7 @@ def process_dataset() -> None:
         )
 
 
-def search_test():
+def search_test(collection_to_use):
     import os
 
     embedder = NomicEmbedder(device="mps", batch_size=4)
@@ -144,10 +144,10 @@ def search_test():
 
     results = database.search(
         querry=query_embeddings,
-        collection_name=collection_name,
+        collection_name=collection_to_use,
         limit=k,
     )
-
+    all_metrics = []
     for r, fragment in zip(results, os.listdir("./dataset/test/fragments")):
         source_image_name = image_test_data_csv[
             image_test_data_csv["Component"] == fragment
@@ -158,7 +158,7 @@ def search_test():
 
         number_of_source_embeddings = len(
             database.client.scroll(
-                collection_name=collection_name,
+                collection_name=collection_to_use,
                 scroll_filter=models.Filter(
                     must=[
                         models.FieldCondition(
@@ -175,14 +175,47 @@ def search_test():
         metrics = get_metrics(
             source_image_name, top_k_sources, number_of_source_embeddings
         )
-        print(
-            f"Fragment: {fragment}    Source: {source_image_name}.   Number of fragments in original: {number_of_source_embeddings}",
-            f"\nTop k sources: {top_k_sources}\nMetrics: {metrics}\n\n\n",
-        )
+        # print(
+        #     f"Fragment: {fragment}    Source: {source_image_name}.   Number of fragments in original: {number_of_source_embeddings}",
+        #     f"\nTop k sources: {top_k_sources}\nMetrics: {metrics}\n\n\n",
+        # )
         fragment_metrics = {
             "method": fragment_generation_method,  # one of the 4 strings each meaning the method ('window_train', 'window_validation', 'detection_train', 'detection_validation')
             "metrics": metrics,  # dictionary with metrics
         }
+
+        all_metrics.append(fragment_metrics)
+
+    return fragment_metrics
+
+
+def run_tests_for_collections():
+    import json
+
+    names_original = ["image_vector_store_v1", "image_vector_store_v1_cosine"]
+
+    path_results = "./results/"
+
+    names_lower_dim = [
+        "embeddings_small_pca_Eucl",
+        "embeddings_small_gaussian_Eucl",
+        "embeddings_small_AE_Eucl",
+        "embeddings_small_pca_Cos",
+        "embeddings_small_gaussian_Cos",
+        "embeddings_small_AE_Cos",
+    ]
+
+    for col_name in names_original:
+        results = search_test(collection_to_use=col_name)
+        print(results)
+        with open(path_results + col_name, "w") as outfile:
+            json.dump(results, outfile)
+
+    for col_name in names_lower_dim:
+        results = search_test(collection_to_use=col_name)
+        print(results)
+        with open(path_results + col_name, "w") as outfile:
+            json.dump(results, outfile)
 
 
 def create_databases():
@@ -248,12 +281,13 @@ def create_databases():
 
 
 if __name__ == "__main__":
+    run_tests_for_collections()
     # a = np.load("./data/embeddings.npy", mmap_mode="r+")
     # print(len(a))
     # # dimentionality_reduction()
     # process_dataset()
 
-    #database = QdrantDatabase(host="localhost", port=6333)
+    # database = QdrantDatabase(host="localhost", port=6333)
     # database.client.update_collection(
     #     collection_name=collection_name,
     #     hnsw_config=models.HnswConfigDiff(
@@ -265,22 +299,7 @@ if __name__ == "__main__":
     # dimentionality_reduction()
     # deload()
 
-
-    create_databases()
-
-    names_original = [
-        "image_vector_store_v1",
-        "image_vector_store_v1_cosine"
-    ]
-
-    names_lower_dim = [
-        "embeddings_small_pca_Eucl",
-        "embeddings_small_gaussian_Eucl",
-        "embeddings_small_AE_Eucl",
-        "embeddings_small_pca_Cos",
-        "embeddings_small_gaussian_Cos",
-        "embeddings_small_AE_Cos"
-    ]
+    # create_databases()
 
 # search_test()
 
