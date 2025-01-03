@@ -13,8 +13,8 @@ This project focuses on developing a **deep learning-based image search system**
 ---
 
 ## Links
-[Report link](https://github.com/MrIlyaneX/DLS-Project)
-[Presentation slides link](https://github.com/MrIlyaneX/DLS-Project)
+[Report link](https://github.com/MrIlyaneX/DLS-Project/blob/main/DLS_hw_3.pdf)
+[Presentation slides link](https://github.com/MrIlyaneX/DLS-Project/blob/main/Final_presentation_DLS2024%202.pdf)
 
 ## 📌 Problem Statement
 The system matches an image fragment to its original photo or highly similar images. It leverages advanced machine learning models to achieve high accuracy, low latency, and scalability.
